@@ -11,9 +11,10 @@ module Phase5
     # You haven't done routing yet; but assume route params will be
     # passed in as a hash to `Params.new` as below:
     def initialize(req, route_params = {})
-      @params = parse_www_encoded_form(req.query_string) if req.query_string
-      @params = parse_www_encoded_form(req.body) if req.body
-      @params = route_params unless route_params.empty?
+      @params = {}
+      @params.merge!(parse_www_encoded_form(req.query_string)) if req.query_string
+      @params.merge!(parse_www_encoded_form(req.body)) if req.body
+      @params.merge!(route_params) unless route_params.empty?
     end
 
     def [](key)
@@ -34,18 +35,53 @@ module Phase5
     # should return
     # { "user" => { "address" => { "street" => "main", "zip" => "89436" } } }
     def parse_www_encoded_form(www_encoded_form)
-      array = URI::decode_www_form(www_encoded_form)
+      # array = URI::decode_www_form(www_encoded_form)
+      # hash = {}
+      # array.each do |key, value|
+      #   parsed_key = parse_key(key)
+      #
+      #   parsed_key.each do |k|
+      #     temp_hash = hash
+      #     if hash[k].empty?
+      #       hash[k] = Hash.new
+      #     else
+      #       hash[k] =
+      #     end
+      #
+      #   end
+      # end
+      # hash
       hash = {}
-      array.each do |key, value|
-        hash[key] = value
+
+      array = URI.decode_www_form(www_encoded_form)
+
+      array.each do |keys, value|
+        temp_hash = hash
+        parsed_key = parse_key(keys)
+
+        parsed_key.each_with_index do |key, index|
+          if (index + 1) == parsed_key.count
+            temp_hash[key] = value
+          else
+            temp_hash[key] = {} if temp_hash[key].nil?
+            temp_hash = temp_hash[key]
+          end
+        end
       end
+
       hash
+
+
+        # head = parsed_key.shift
+        # tail = parsed_key.reverse.inject(value) { |t, h| { h => t } }
+        # hash[head] = tail
+        # # hash[parsed_key.reverse.inject { |t, h| { h => t } }] = value
     end
 
     # this should return an array
     # user[address][street] should return ['user', 'address', 'street']
     def parse_key(key)
-      # @params[key].to_s
+      key.split(/\]\[|\[|\]/)
     end
   end
 end
